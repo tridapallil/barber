@@ -98,3 +98,8 @@ export function iniciais(nome) {
 }
 
 export const FORMAS_PAGAMENTO = ['Dinheiro', 'Pix', 'Cartão de débito', 'Cartão de crédito', 'Fiado'];
+
+/** Ordena por nome sem quebrar se algum registro vier sem o campo. */
+export function compararNome(a, b) {
+  return String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR');
+}

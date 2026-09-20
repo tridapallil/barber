@@ -51,22 +51,52 @@ async function ensureFile(key) {
     await fs.mkdir(DATA_DIR, { recursive: true });
     const seed =
       key === 'serviceTypes'
-        ? SEED_SERVICE_TYPES.map((name) => ({ id: newId(), name, createdAt: new Date().toISOString() }))
+        ? SEED_SERVICE_TYPES.map((nome) => ({ id: newId(), nome, criadoEm: new Date().toISOString() }))
         : [];
     await fs.writeFile(file, JSON.stringify(seed, null, 2), 'utf8');
   }
   return file;
 }
 
+/*
+ * Versões antigas semeavam os tipos de serviço com `name`/`createdAt` em
+ * inglês, o que quebrava qualquer ordenação por `nome`. Aqui os registros
+ * antigos são convertidos na leitura e regravados já corrigidos.
+ */
+function migrar(key, rows) {
+  if (key !== 'serviceTypes') return { rows, mudou: false };
+
+  let mudou = false;
+  const convertidas = rows
+    .map((t) => {
+      if (t && typeof t.nome === 'string' && t.nome) return t;
+      mudou = true;
+      return {
+        id: t?.id || newId(),
+        nome: String(t?.nome || t?.name || '').trim(),
+        criadoEm: t?.criadoEm || t?.createdAt || new Date().toISOString(),
+      };
+    })
+    .filter((t) => t.nome);
+
+  if (convertidas.length !== rows.length) mudou = true;
+  return { rows: convertidas, mudou };
+}
+
 export async function readAll(key) {
   const file = await ensureFile(key);
+  let linhas = [];
   try {
     const raw = await fs.readFile(file, 'utf8');
     const parsed = JSON.parse(raw || '[]');
-    return Array.isArray(parsed) ? parsed : [];
+    linhas = Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
+
+  const { rows, mudou } = migrar(key, linhas);
+  if (mudou) await writeAll(key, rows);
+  return rows;
 }
 
 export async function writeAll(key, rows) {
@@ -90,6 +120,7 @@ export async function mutate(key, mutator) {
       rows = [];
     }
     if (!Array.isArray(rows)) rows = [];
+    rows = migrar(key, rows).rows;
     const result = await mutator(rows);
     const tmp = `${file}.${process.pid}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(rows, null, 2), 'utf8');

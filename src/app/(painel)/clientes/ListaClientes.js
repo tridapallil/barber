@@ -16,7 +16,7 @@ import {
   IconeMais,
   IconeX,
 } from '@/components/Icones';
-import { formatarData, formatarMoeda, formatarTelefone, iniciais, normalizar, somenteDigitos } from '@/lib/format';
+import { compararNome, formatarData, formatarMoeda, formatarTelefone, iniciais, normalizar, somenteDigitos } from '@/lib/format';
 
 const ORDENS = [
   ['nome', 'A–Z'],
@@ -63,8 +63,8 @@ export default function ListaClientes({ clientes }) {
 
     return [...lista].sort((a, b) => {
       if (ordem === 'recentes') return (b.ultima || '').localeCompare(a.ultima || '');
-      if (ordem === 'atendimentos') return b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, 'pt-BR');
-      return a.nome.localeCompare(b.nome, 'pt-BR');
+      if (ordem === 'atendimentos') return b.quantidade - a.quantidade || compararNome(a, b);
+      return compararNome(a, b);
     });
   }, [clientes, busca, ordem]);
 

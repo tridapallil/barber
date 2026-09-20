@@ -5,7 +5,7 @@ import Modal from './Modal';
 import ComboServico from './ComboServico';
 import { useAviso } from './Avisos';
 import { IconeAlerta } from './Icones';
-import { FORMAS_PAGAMENTO, hojeISO } from '@/lib/format';
+import { FORMAS_PAGAMENTO, compararNome, hojeISO } from '@/lib/format';
 
 function valorInicial(v) {
   if (v === null || v === undefined || v === '') return '';
@@ -109,7 +109,7 @@ export default function FormularioServico({ servico, clientes, tipos, clienteFix
             >
               <option value="">Selecione…</option>
               {[...clientes]
-                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                .sort(compararNome)
                 .map((c) => (
                   <option key={c.id} value={c.id}>{c.nome}</option>
                 ))}

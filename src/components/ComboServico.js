@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { normalizar } from '@/lib/format';
+import { compararNome, normalizar } from '@/lib/format';
 
 /**
  * Campo de serviço: escolhe um já cadastrado ou digita um novo.
@@ -14,7 +14,7 @@ export default function ComboServico({ valor, aoMudar, tipos, id = 'servico-nome
 
   const sugestoes = useMemo(() => {
     const busca = normalizar(valor);
-    const lista = [...tipos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const lista = [...tipos].filter((t) => t && t.nome).sort(compararNome);
     if (!busca) return lista.slice(0, 40);
     return lista.filter((t) => normalizar(t.nome).includes(busca)).slice(0, 40);
   }, [tipos, valor]);
