@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p ${PORT:-3210}",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3210}",
     "instalar": "npm ci",
-    "producao": "npm ci && npm run build && npm start",
+    "prod": "npm ci && npm run build && npm start",
     "exemplo": "node scripts/dados.js exemplo",
     "limpar": "node scripts/dados.js limpar"
   },

@@ -9,7 +9,7 @@ As telas estão em [`capturas/`](capturas).
 
 ```bash
 npm ci          # ou: npm run instalar
-npm run dev     # http://localhost:3000
+npm run dev     # http://localhost:3210
 ```
 
 Para usar no dia a dia (mais rápido):
@@ -26,7 +26,7 @@ npm run build
 npm start
 ```
 
-Se a porta 3000 estiver ocupada: `PORT=3210 npm run dev`.
+O sistema usa a porta **3210**. Para mudar: `PORT=4000 npm run dev`.
 
 ## Primeiro acesso
 
@@ -90,7 +90,7 @@ Todas são opcionais numa instalação local.
 
 | Variável | Para quê |
 |---|---|
-| `PORT` | porta do servidor (padrão `3000`) |
+| `PORT` | porta do servidor (padrão `3210`) |
 | `SALAO_SEGREDO` | chave que assina o cookie. Sem ela, é gerada e guardada em `data/segredo.txt` |
 | `SALAO_COOKIE_SECURE` | `1` quando o site é servido por **HTTPS**. Deixe desligado em acesso por `http://ip-da-rede`, senão o login não funciona |
 
@@ -111,7 +111,7 @@ O projeto já vem com `Dockerfile` (Next em modo `standalone`) e o
 - *Base Directory*: `/`
 
 **3. Rede**
-- *Ports Exposes*: `3000`
+- *Ports Exposes*: `3210`
 - Em *Domains*, coloque o domínio que vai usar. O Coolify cuida do HTTPS.
 
 **4. Volume persistente — o passo mais importante**

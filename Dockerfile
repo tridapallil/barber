@@ -18,7 +18,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=3210
 ENV HOSTNAME=0.0.0.0
 
 RUN addgroup -g 1001 -S nodejs && adduser -S salao -u 1001
@@ -32,6 +32,6 @@ RUN mkdir -p /app/data && chown -R salao:nodejs /app/data
 VOLUME ["/app/data"]
 
 USER salao
-EXPOSE 3000
+EXPOSE 3210
 
 CMD ["node", "server.js"]
