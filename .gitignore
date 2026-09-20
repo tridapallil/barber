@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+.DS_Store
+npm-debug.log*
+.env
+.env*.local
+
+# Banco de dados local: contém clientes reais, hash de senha e o segredo da sessão
+/data/*
+!/data/.gitkeep

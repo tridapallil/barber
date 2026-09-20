@@ -1,0 +1,58 @@
+[
+  {
+    "id": "633082b3-bc5e-4371-9204-f244de745a08",
+    "nome": "Maria Aparecida Souza",
+    "telefone": "11988776655",
+    "descricao": "Alérgica a amônia. Prefere horário da manhã.",
+    "criadoEm": "2026-09-20T12:47:19.268Z",
+    "atualizadoEm": "2026-09-20T12:47:19.268Z"
+  },
+  {
+    "id": "4f49893b-5430-453f-ade0-fbe7ba7b5106",
+    "nome": "Joana Ribeiro",
+    "telefone": "11991234567",
+    "descricao": "",
+    "criadoEm": "2026-09-20T12:47:19.288Z",
+    "atualizadoEm": "2026-09-20T12:47:19.288Z"
+  },
+  {
+    "id": "11430c39-a65c-41d5-b8c3-2892ab05610e",
+    "nome": "Cláudia Menezes",
+    "telefone": "11987654321",
+    "descricao": "Cabelo cacheado, usa low poo.",
+    "criadoEm": "2026-09-20T12:47:19.305Z",
+    "atualizadoEm": "2026-09-20T12:47:19.305Z"
+  },
+  {
+    "id": "ba4ef30f-0f60-4b60-b0fd-94cfa36341ed",
+    "nome": "Rita de Cássia Lima",
+    "telefone": "11993456789",
+    "descricao": "",
+    "criadoEm": "2026-09-20T12:47:19.324Z",
+    "atualizadoEm": "2026-09-20T12:47:19.324Z"
+  },
+  {
+    "id": "248f9f0f-7b02-48fb-876d-f9fb855b671c",
+    "nome": "Fernanda Alves",
+    "telefone": "11982223344",
+    "descricao": "Sempre vem com a filha.",
+    "criadoEm": "2026-09-20T12:47:19.343Z",
+    "atualizadoEm": "2026-09-20T12:47:19.343Z"
+  },
+  {
+    "id": "df9f3bff-f1a4-4628-864d-396b5bfc469c",
+    "nome": "Sandra Pereira",
+    "telefone": "",
+    "descricao": "",
+    "criadoEm": "2026-09-20T12:47:19.362Z",
+    "atualizadoEm": "2026-09-20T12:47:19.362Z"
+  },
+  {
+    "id": "9da80f59-58ff-4050-9c69-ed99f113490f",
+    "nome": "Vera Lúcia Martins",
+    "telefone": "11995556677",
+    "descricao": "Gosta de café sem açúcar.",
+    "criadoEm": "2026-09-20T12:47:19.379Z",
+    "atualizadoEm": "2026-09-20T12:47:19.380Z"
+  }
+]

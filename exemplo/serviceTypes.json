@@ -1,0 +1,77 @@
+[
+  {
+    "id": "f6a4dea8-cf15-436b-8f1f-c02c93f5d7bf",
+    "nome": "Corte feminino",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "3400f447-6944-430e-b389-e804291586a3",
+    "nome": "Corte masculino",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "fcada7a2-af4a-4f03-a5d0-826597558159",
+    "nome": "Escova",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "6151aa6e-0ce1-4ef6-8725-1881df48024a",
+    "nome": "Hidratação",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "62f5aaf6-9a5a-4b0c-a3cd-67e8f715e691",
+    "nome": "Coloração",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "db62135f-f524-420a-8b94-0c2043e2ea94",
+    "nome": "Luzes / Mechas",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "c5d50569-ea13-4cad-ab9c-c2a9faaf5db5",
+    "nome": "Progressiva",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "e93e33e6-86b5-4786-9152-eb150b5a0632",
+    "nome": "Manicure",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "71b09ec8-27eb-4955-a444-4642173e1d60",
+    "nome": "Pedicure",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "f506e2a9-1bfb-4baf-866f-97eb2d488eca",
+    "nome": "Design de sobrancelha",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "90124988-cc1f-453c-aeed-894497eaae57",
+    "nome": "Maquiagem",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "e3aaf0a5-cdfd-401e-a2a4-b0c3ea86df91",
+    "nome": "Penteado",
+    "criadoEm": "2026-09-20T12:46:02.681Z"
+  },
+  {
+    "id": "9c330827-e00c-4be9-bd7d-b254c9ef6e59",
+    "nome": "Pé e mão",
+    "criadoEm": "2026-09-20T12:47:19.486Z"
+  },
+  {
+    "id": "99887a03-5a24-4c1d-965c-4e668b3486f3",
+    "nome": "Banho de brilho",
+    "criadoEm": "2026-09-20T12:48:30.962Z"
+  },
+  {
+    "id": "d0c4adce-fe00-4581-95a9-d32878ae1a49",
+    "nome": "Corte teste",
+    "criadoEm": "2026-09-20T12:48:31.921Z"
+  }
+]

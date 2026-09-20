@@ -1,0 +1,22 @@
+{
+  "name": "salao",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "instalar": "npm ci",
+    "producao": "npm ci && npm run build && npm start",
+    "exemplo": "node scripts/dados.js exemplo",
+    "limpar": "node scripts/dados.js limpar"
+  },
+  "dependencies": {
+    "next": "^15.5.25",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}
