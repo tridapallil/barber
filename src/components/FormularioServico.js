@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import ComboServico from './ComboServico';
+import ComboCliente from './ComboCliente';
 import { useAviso } from './Avisos';
+import { useAtualizar } from './Progresso';
 import { IconeAlerta } from './Icones';
-import { FORMAS_PAGAMENTO, compararNome, hojeISO } from '@/lib/format';
+import { FORMAS_PAGAMENTO, hojeISO } from '@/lib/format';
 
 function valorInicial(v) {
   if (v === null || v === undefined || v === '') return '';
@@ -14,9 +16,12 @@ function valorInicial(v) {
 
 export default function FormularioServico({ servico, clientes, tipos, clienteFixo, onFechar, onSalvo }) {
   const avisar = useAviso();
+  const { atualizar } = useAtualizar();
   const editando = Boolean(servico);
 
   const [clienteId, setClienteId] = useState(servico?.clienteId || clienteFixo?.id || '');
+  // a lista cresce sem recarregar quando uma cliente é cadastrada aqui mesmo
+  const [listaClientes, setListaClientes] = useState(clientes);
   const [nome, setNome] = useState(servico?.nome || '');
   const [data, setData] = useState(servico?.data || hojeISO());
   const [valor, setValor] = useState(valorInicial(servico?.valor));
@@ -27,6 +32,29 @@ export default function FormularioServico({ servico, clientes, tipos, clienteFix
   const [enviando, setEnviando] = useState(false);
 
   const semValor = valor.trim() === '';
+
+  async function cadastrarCliente(nome) {
+    setErro('');
+    try {
+      const resposta = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, telefone: '', descricao: '' }),
+      });
+      const dados = await resposta.json();
+      if (!resposta.ok) {
+        setErro(dados.erro || 'Não foi possível cadastrar a cliente.');
+        return null;
+      }
+      setListaClientes((atual) => [...atual, dados]);
+      avisar(`${dados.nome} cadastrada.`);
+      atualizar(); // a lista da página também precisa saber da nova cliente
+      return dados;
+    } catch {
+      setErro('Falha de conexão ao cadastrar a cliente.');
+      return null;
+    }
+  }
 
   async function salvar(e) {
     e.preventDefault();
@@ -100,20 +128,13 @@ export default function FormularioServico({ servico, clientes, tipos, clienteFix
             <label className="campo-rotulo" htmlFor="servico-cliente">
               Cliente <span className="obrigatorio">*</span>
             </label>
-            <select
-              id="servico-cliente"
-              className="selecao"
-              value={clienteId}
-              onChange={(e) => setClienteId(e.target.value)}
-              required
-            >
-              <option value="">Selecione…</option>
-              {[...clientes]
-                .sort(compararNome)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-            </select>
+            <ComboCliente
+              clientes={listaClientes}
+              clienteId={clienteId}
+              aoMudar={setClienteId}
+              aoCriar={cadastrarCliente}
+            />
+            <span className="ajuda">Digite o nome para buscar. Se ainda não existir, dá para cadastrar aqui.</span>
           </div>
         )}
 

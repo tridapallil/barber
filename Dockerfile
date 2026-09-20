@@ -27,9 +27,15 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=salao:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=salao:nodejs /app/.next/static ./.next/static
 
-# Onde os JSON ficam guardados. Monte um volume aqui para não perder nada.
+# Onde os JSON ficam guardados.
+#
+# NÃO declare `VOLUME ["/app/data"]` aqui: sem um volume nomeado montado, o
+# Docker cria um volume ANÔNIMO novo a cada `docker run`. Como o Coolify
+# recria o container a cada deploy, os dados do deploy anterior viram um
+# volume órfão e o sistema sobe vazio — parece persistir até o primeiro
+# redeploy. A persistência tem que ser declarada no Coolify (Storages →
+# Volume Mount → /app/data), não aqui.
 RUN mkdir -p /app/data && chown -R salao:nodejs /app/data
-VOLUME ["/app/data"]
 
 USER salao
 EXPOSE 3210

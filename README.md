@@ -64,6 +64,18 @@ aparecer na lista da próxima vez.
 Um serviço da lista que **já foi usado** em algum atendimento não pode ser
 editado nem excluído — só os que nunca foram usados.
 
+## Backup — leia antes de fazer deploy
+
+O sistema tem uma tela de **Backup** (ícone de escudo no topo, ou o atalho no
+rail à esquerda). Ali você:
+
+- **baixa um arquivo** com tudo: clientes, atendimentos, lista de serviços e o
+  acesso (usuário e senha);
+- **restaura** esse arquivo depois, se precisar.
+
+Guarde o arquivo **fora do servidor**. Baixe um antes de qualquer atualização.
+É a única proteção que não depende da infraestrutura estar certa.
+
 ## Dados
 
 Tudo fica em `data/`:
@@ -114,9 +126,11 @@ O projeto já vem com `Dockerfile` (Next em modo `standalone`) e o
 - *Ports Exposes*: `3210`
 - Em *Domains*, coloque o domínio que vai usar. O Coolify cuida do HTTPS.
 
-**4. Volume persistente — o passo mais importante**
+**4. Volume persistente — obrigatório, não opcional**
 
-Sem isso, **todos os clientes e atendimentos somem a cada deploy**.
+Sem isso, **todos os clientes, atendimentos e o usuário somem a cada deploy.**
+O Coolify recria o container a cada atualização; o que não está num volume
+declarado vai junto.
 
 - Aba *Storages* → *+ Add* → **Volume Mount**
 - *Name*: `salao-dados`
@@ -126,6 +140,40 @@ Use volume nomeado, não *bind mount*. O volume nomeado herda as permissões do
 diretório da imagem (que já pertence ao usuário do container). Se preferir um
 caminho do host, rode antes no servidor:
 `sudo mkdir -p /caminho/escolhido && sudo chown -R 1001:1001 /caminho/escolhido`
+
+Depois do primeiro deploy, confirme que o volume está mesmo montado:
+
+```bash
+docker inspect <nome-do-container> --format '{{json .Mounts}}' | python3 -m json.tool
+```
+
+O resultado precisa mostrar `"Destination": "/app/data"` com `"Type": "volume"`
+e um `Name` legível (`salao-dados`). Se o `Name` for um hash longo de 64
+caracteres, é um **volume anônimo** — ele será descartado no próximo deploy.
+
+### Perdeu dados num deploy? Eles podem estar recuperáveis
+
+Volumes anônimos não são apagados na hora, só ficam órfãos. No servidor:
+
+```bash
+for v in $(docker volume ls -q); do
+  if sudo test -f "/var/lib/docker/volumes/$v/_data/clients.json"; then
+    echo "=== $v ==="
+    sudo ls -la "/var/lib/docker/volumes/$v/_data/"
+  fi
+done
+```
+
+Isso lista os volumes que têm dados do salão. Para trazer de volta o mais
+recente para o volume correto:
+
+```bash
+sudo cp -a /var/lib/docker/volumes/<volume-antigo>/_data/. \
+           /var/lib/docker/volumes/salao-dados/_data/
+sudo chown -R 1001:1001 /var/lib/docker/volumes/salao-dados/_data
+```
+
+Depois reinicie o container pelo Coolify.
 
 **5. Variáveis de ambiente**
 

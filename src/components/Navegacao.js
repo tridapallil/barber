@@ -7,6 +7,7 @@ import {
   IconeBusca,
   IconeClienteMais,
   IconeClientes,
+  IconeEscudo,
   IconePainel,
   IconeRelatorio,
   IconeSair,
@@ -73,6 +74,14 @@ export function Topo({ usuario }) {
       </nav>
 
       <div className="topo-fim">
+        <Link
+          href="/backup"
+          className={`btn-circulo ${pathname.startsWith('/backup') ? 'escuro' : ''}`}
+          aria-label="Backup dos dados"
+          title="Backup dos dados"
+        >
+          <IconeEscudo size={17} />
+        </Link>
         <div className="usuario-chip">
           <span className="nome">{usuario}</span>
           <span className="usuario-bolha">{iniciais(usuario)}</span>
@@ -106,6 +115,15 @@ export function Rail() {
       >
         <span className="bolha"><IconeRelatorio size={19} /></span>
         <span className="rotulo">Relatórios</span>
+      </Link>
+
+      <Link
+        href="/backup"
+        className={`rail-btn ${pathname.startsWith('/backup') ? 'ativo' : ''}`}
+        aria-label="Backup dos dados"
+      >
+        <span className="bolha"><IconeEscudo size={19} /></span>
+        <span className="rotulo">Backup</span>
       </Link>
     </nav>
   );

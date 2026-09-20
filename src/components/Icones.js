@@ -211,3 +211,24 @@ export const IconeArquivo = (p) => (
     <path d="M14 3v5h5" />
   </Svg>
 );
+
+export const IconeBaixar = (p) => (
+  <Svg {...p}>
+    <path d="M12 3v12M7.5 10.5 12 15l4.5-4.5" />
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Svg>
+);
+
+export const IconeSubir = (p) => (
+  <Svg {...p}>
+    <path d="M12 15V3M7.5 7.5 12 3l4.5 4.5" />
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Svg>
+);
+
+export const IconeEscudo = (p) => (
+  <Svg {...p}>
+    <path d="M12 3 5 6v5.5c0 4.3 2.9 8.3 7 9.5 4.1-1.2 7-5.2 7-9.5V6Z" />
+    <path d="m9 12 2 2 4-4" />
+  </Svg>
+);
