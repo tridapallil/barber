@@ -1,9 +1,8 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { mutate, newId, readAll } from './db';
+import { buscarUm, configDefinirSeAusente, contar, inserir, newId } from './db';
+import { ehDuplicado } from './mongo';
 
 export const COOKIE_NAME = 'salao_sessao';
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 dias
@@ -12,13 +11,13 @@ export const MIN_USUARIO = 3;
 export const MIN_SENHA = 6;
 
 /*
- * O segredo que assina o cookie vem da variável de ambiente. Sem ela, é
- * gerado uma vez e guardado em data/segredo.txt — assim as sessões
- * sobrevivem a um reinício mesmo em instalação caseira.
+ * O segredo que assina o cookie vem da variável de ambiente. Sem ela, é gerado
+ * uma vez e guardado no banco — assim as sessões sobrevivem a reinícios e a
+ * novos deploys sem depender de arquivo em disco.
  */
 let segredoEmCache = null;
 
-function segredo() {
+async function segredo() {
   if (segredoEmCache) return segredoEmCache;
 
   if (process.env.SALAO_SEGREDO) {
@@ -26,43 +25,26 @@ function segredo() {
     return segredoEmCache;
   }
 
-  const arquivo = path.join(process.cwd(), 'data', 'segredo.txt');
-  try {
-    const salvo = fs.readFileSync(arquivo, 'utf8').trim();
-    if (salvo) {
-      segredoEmCache = salvo;
-      return segredoEmCache;
-    }
-  } catch {
-    // ainda não existe
-  }
-
-  const novo = crypto.randomBytes(48).toString('hex');
-  try {
-    fs.mkdirSync(path.dirname(arquivo), { recursive: true });
-    fs.writeFileSync(arquivo, novo, { encoding: 'utf8', mode: 0o600 });
-  } catch {
-    // sem permissão de escrita: segue em memória (sessões caem no reinício)
-  }
-  segredoEmCache = novo;
+  // upsert com $setOnInsert: se dois processos subirem juntos, vale um só valor
+  segredoEmCache = await configDefinirSeAusente('segredoSessao', crypto.randomBytes(48).toString('hex'));
   return segredoEmCache;
 }
 
-function assinar(valor) {
-  return crypto.createHmac('sha256', segredo()).update(valor).digest('hex');
+async function assinar(valor) {
+  return crypto.createHmac('sha256', await segredo()).update(valor).digest('hex');
 }
 
-export function createToken(usuario) {
+export async function createToken(usuario) {
   const payload = Buffer.from(JSON.stringify({ user: usuario, exp: Date.now() + MAX_AGE * 1000 })).toString('base64url');
-  return `${payload}.${assinar(payload)}`;
+  return `${payload}.${await assinar(payload)}`;
 }
 
-export function verifyToken(token) {
+export async function verifyToken(token) {
   if (!token || typeof token !== 'string') return null;
   const [payload, assinatura] = token.split('.');
   if (!payload || !assinatura) return null;
 
-  const esperado = assinar(payload);
+  const esperado = await assinar(payload);
   const a = Buffer.from(assinatura);
   const b = Buffer.from(esperado);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
@@ -97,8 +79,7 @@ function conferirHash(senha, salt, hash) {
 /* ---------- usuários ---------- */
 
 export async function temUsuario() {
-  const usuarios = await readAll('users');
-  return usuarios.length > 0;
+  return (await contar('users')) > 0;
 }
 
 export function validarCadastro(usuario, senha) {
@@ -110,44 +91,32 @@ export function validarCadastro(usuario, senha) {
 
 /** Só funciona enquanto não existir nenhum usuário — é o cadastro inicial. */
 export async function criarPrimeiroUsuario(usuario, senha) {
-  const { salt, hash } = criarHash(senha);
+  if (await temUsuario()) return { erro: 'Este sistema já tem um usuário cadastrado.' };
 
-  return mutate('users', (rows) => {
-    if (rows.length > 0) return { erro: 'Este sistema já tem um usuário cadastrado.' };
-    const novo = {
+  const { salt, hash } = criarHash(senha);
+  try {
+    await inserir('users', {
       id: newId(),
       usuario,
       salt,
       hash,
       criadoEm: new Date().toISOString(),
-    };
-    rows.push(novo);
-    return { usuario: novo.usuario };
-  });
+    });
+  } catch (erro) {
+    if (ehDuplicado(erro)) return { erro: 'Este sistema já tem um usuário cadastrado.' };
+    throw erro;
+  }
+  return { usuario };
 }
 
 export async function autenticar(usuario, senha) {
-  const usuarios = await readAll('users');
-  const encontrado = usuarios.find((u) => u.usuario.toLowerCase() === String(usuario).toLowerCase());
+  const encontrado = await buscarUm('users', { usuarioChave: String(usuario).toLowerCase() });
   if (!encontrado) {
     // gasta o mesmo tempo de um acerto, para não entregar quais usuários existem
     derivar(senha, 'salt-falso-para-comparar');
     return null;
   }
   return conferirHash(senha, encontrado.salt, encontrado.hash) ? encontrado.usuario : null;
-}
-
-export async function trocarSenha(usuario, senhaAtual, senhaNova) {
-  const usuarios = await readAll('users');
-  const alvo = usuarios.find((u) => u.usuario === usuario);
-  if (!alvo || !conferirHash(senhaAtual, alvo.salt, alvo.hash)) return { erro: 'Senha atual incorreta.' };
-
-  const { salt, hash } = criarHash(senhaNova);
-  await mutate('users', (rows) => {
-    const i = rows.findIndex((u) => u.usuario === usuario);
-    if (i !== -1) rows[i] = { ...rows[i], salt, hash, atualizadoEm: new Date().toISOString() };
-  });
-  return { ok: true };
 }
 
 /* ---------- sessão ---------- */

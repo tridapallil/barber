@@ -24,6 +24,6 @@ export async function POST(request) {
   if (!autenticado) return erro('Usuário ou senha incorretos.', 401);
 
   const store = await cookies();
-  store.set(COOKIE_NAME, createToken(autenticado), cookieOptions);
+  store.set(COOKIE_NAME, await createToken(autenticado), cookieOptions);
   return ok({ usuario: autenticado });
 }

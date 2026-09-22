@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readAll, writeAll } from '@/lib/db';
+import { listar, substituirColecao } from '@/lib/db';
 import { erro, ok, semSessao } from '@/lib/api';
 import { paraISO } from '@/lib/format';
 
@@ -12,7 +12,7 @@ export async function GET() {
   const bloqueio = await semSessao();
   if (bloqueio) return bloqueio;
 
-  const [clients, services, serviceTypes, users] = await Promise.all(CHAVES.map((c) => readAll(c)));
+  const [clients, services, serviceTypes, users] = await Promise.all(CHAVES.map((c) => listar(c)));
 
   const conteudo = {
     formato: 'salao-backup',
@@ -63,12 +63,8 @@ export async function POST(request) {
 
   const resumo = {};
   for (const chave of presentes) {
-    await writeAll(chave, corpo[chave]);
-    resumo[chave] = corpo[chave].length;
+    resumo[chave] = await substituirColecao(chave, corpo[chave]);
   }
 
-  return ok({
-    restaurado: resumo,
-    geradoEm: corpo.geradoEm || null,
-  });
+  return ok({ restaurado: resumo, geradoEm: corpo.geradoEm || null });
 }

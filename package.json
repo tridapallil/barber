@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3210}",
     "instalar": "npm ci",
-    "prod": "npm ci && npm run build && npm start",
+    "producao": "npm ci && npm run build && npm start",
+    "migrar": "node scripts/migrar-mongo.js",
     "exemplo": "node scripts/dados.js exemplo",
     "limpar": "node scripts/dados.js limpar"
   },
   "dependencies": {
+    "mongodb": "^6.21.0",
     "next": "^15.5.25",
     "react": "19.1.0",
     "react-dom": "19.1.0"

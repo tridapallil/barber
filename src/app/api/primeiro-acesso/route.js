@@ -35,6 +35,6 @@ export async function POST(request) {
   if (resultado.erro) return erro(resultado.erro, 409);
 
   const store = await cookies();
-  store.set(COOKIE_NAME, createToken(resultado.usuario), cookieOptions);
+  store.set(COOKIE_NAME, await createToken(resultado.usuario), cookieOptions);
   return ok({ usuario: resultado.usuario });
 }

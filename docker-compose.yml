@@ -1,0 +1,40 @@
+# Sobe o sistema e o banco juntos. Útil para rodar num servidor próprio ou
+# para testar localmente:
+#
+#   docker compose up -d
+#
+# No Coolify, prefira criar o MongoDB como recurso separado e apontar
+# MONGODB_URI para ele (veja o README).
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USUARIO:-salao}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_SENHA:-troque-esta-senha}
+    volumes:
+      - mongo-dados:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://${MONGO_USUARIO:-salao}:${MONGO_SENHA:-troque-esta-senha}@mongo:27017/?authSource=admin
+      MONGODB_DB: ${MONGODB_DB:-salao}
+      SALAO_SEGREDO: ${SALAO_SEGREDO:-}
+      SALAO_COOKIE_SECURE: ${SALAO_COOKIE_SECURE:-}
+    ports:
+      - "${PORT:-3210}:3210"
+
+volumes:
+  mongo-dados:

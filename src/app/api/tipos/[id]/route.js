@@ -1,4 +1,4 @@
-import { mutate, readAll } from '@/lib/db';
+import { atualizarUm, buscarUm, contar, ehDuplicado, removerUm } from '@/lib/db';
 import { erro, ok, semSessao, texto } from '@/lib/api';
 import { normalizar } from '@/lib/format';
 
@@ -6,9 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /** Um tipo já usado em algum atendimento fica travado (não pode editar nem excluir). */
 async function estaEmUso(nomeTipo) {
-  const servicos = await readAll('services');
-  const alvo = normalizar(nomeTipo);
-  return servicos.some((s) => normalizar(s.nome) === alvo);
+  return (await contar('services', { nomeChave: normalizar(nomeTipo) })) > 0;
 }
 
 export async function PATCH(request, { params }) {
@@ -26,27 +24,23 @@ export async function PATCH(request, { params }) {
   const nome = texto(corpo.nome, 120);
   if (!nome) return erro('Informe o nome do serviço.');
 
-  const tipos = await readAll('serviceTypes');
-  const atual = tipos.find((t) => t.id === id);
+  const atual = await buscarUm('serviceTypes', { id });
   if (!atual) return erro('Serviço não encontrado.', 404);
 
   if (await estaEmUso(atual.nome)) {
     return erro('Este serviço já foi usado em atendimentos e não pode ser alterado.', 409);
   }
 
-  const resultado = await mutate('serviceTypes', (rows) => {
-    const i = rows.findIndex((t) => t.id === id);
-    if (i === -1) return { status: 'ausente' };
-    if (rows.some((t) => t.id !== id && normalizar(t.nome) === normalizar(nome))) {
-      return { status: 'duplicado' };
-    }
-    rows[i] = { ...rows[i], nome };
-    return { status: 'ok', tipo: rows[i] };
-  });
+  let atualizado;
+  try {
+    atualizado = await atualizarUm('serviceTypes', { id }, { nome });
+  } catch (e) {
+    if (ehDuplicado(e)) return erro('Já existe um serviço com esse nome.', 409);
+    throw e;
+  }
 
-  if (resultado.status === 'ausente') return erro('Serviço não encontrado.', 404);
-  if (resultado.status === 'duplicado') return erro('Já existe um serviço com esse nome.', 409);
-  return ok(resultado.tipo);
+  if (!atualizado) return erro('Serviço não encontrado.', 404);
+  return ok(atualizado);
 }
 
 export async function DELETE(_request, { params }) {
@@ -54,18 +48,13 @@ export async function DELETE(_request, { params }) {
   if (bloqueio) return bloqueio;
 
   const { id } = await params;
-  const tipos = await readAll('serviceTypes');
-  const atual = tipos.find((t) => t.id === id);
+  const atual = await buscarUm('serviceTypes', { id });
   if (!atual) return erro('Serviço não encontrado.', 404);
 
   if (await estaEmUso(atual.nome)) {
     return erro('Este serviço já foi usado em atendimentos e não pode ser excluído.', 409);
   }
 
-  await mutate('serviceTypes', (rows) => {
-    const i = rows.findIndex((t) => t.id === id);
-    if (i !== -1) rows.splice(i, 1);
-  });
-
+  await removerUm('serviceTypes', { id });
   return ok();
 }

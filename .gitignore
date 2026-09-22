@@ -6,6 +6,6 @@ npm-debug.log*
 .env
 .env*.local
 
-# Banco de dados local: contém clientes reais, hash de senha e o segredo da sessão
-/data/*
-!/data/.gitkeep
+# Dados antigos em arquivo (antes do MongoDB). Mantidos fora do Git por conterem
+# clientes reais e hash de senha; use `npm run migrar` para levá-los ao banco.
+/data/

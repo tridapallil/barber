@@ -1,13 +1,13 @@
-import { mutate, newId, readAll } from '@/lib/db';
+import { ehDuplicado, inserir, listar, newId, semearTiposPadrao } from '@/lib/db';
 import { erro, ok, semSessao, texto } from '@/lib/api';
-import { normalizar } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const bloqueio = await semSessao();
   if (bloqueio) return bloqueio;
-  return ok(await readAll('serviceTypes'));
+  await semearTiposPadrao();
+  return ok(await listar('serviceTypes'));
 }
 
 export async function POST(request) {
@@ -24,13 +24,13 @@ export async function POST(request) {
   const nome = texto(corpo.nome, 120);
   if (!nome) return erro('Informe o nome do serviço.');
 
-  const resultado = await mutate('serviceTypes', (rows) => {
-    if (rows.some((t) => normalizar(t.nome) === normalizar(nome))) return null;
-    const tipo = { id: newId(), nome, criadoEm: new Date().toISOString() };
-    rows.push(tipo);
-    return tipo;
-  });
+  const tipo = { id: newId(), nome, criadoEm: new Date().toISOString() };
+  try {
+    await inserir('serviceTypes', tipo);
+  } catch (e) {
+    if (ehDuplicado(e)) return erro('Esse serviço já está na lista.', 409);
+    throw e;
+  }
 
-  if (!resultado) return erro('Esse serviço já está na lista.', 409);
-  return ok(resultado);
+  return ok(tipo);
 }

@@ -1,6 +1,6 @@
-import { mutate } from '@/lib/db';
+import { atualizarUm, ehDuplicado, removerUm, removerVarios } from '@/lib/db';
 import { erro, ok, semSessao, texto } from '@/lib/api';
-import { normalizar, somenteDigitos } from '@/lib/format';
+import { somenteDigitos } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,24 +19,25 @@ export async function PATCH(request, { params }) {
   const nome = texto(corpo.nome, 120);
   if (!nome) return erro('O nome do cliente é obrigatório.');
 
-  const resultado = await mutate('clients', (rows) => {
-    const i = rows.findIndex((c) => c.id === id);
-    if (i === -1) return { status: 'ausente' };
-    const conflito = rows.some((c) => c.id !== id && normalizar(c.nome) === normalizar(nome));
-    if (conflito) return { status: 'duplicado' };
-    rows[i] = {
-      ...rows[i],
-      nome,
-      telefone: somenteDigitos(texto(corpo.telefone, 30)),
-      descricao: texto(corpo.descricao, 2000),
-      atualizadoEm: new Date().toISOString(),
-    };
-    return { status: 'ok', cliente: rows[i] };
-  });
+  let atualizado;
+  try {
+    atualizado = await atualizarUm(
+      'clients',
+      { id },
+      {
+        nome,
+        telefone: somenteDigitos(texto(corpo.telefone, 30)),
+        descricao: texto(corpo.descricao, 2000),
+        atualizadoEm: new Date().toISOString(),
+      }
+    );
+  } catch (e) {
+    if (ehDuplicado(e)) return erro('Já existe um cliente com esse nome.', 409);
+    throw e;
+  }
 
-  if (resultado.status === 'ausente') return erro('Cliente não encontrado.', 404);
-  if (resultado.status === 'duplicado') return erro('Já existe um cliente com esse nome.', 409);
-  return ok(resultado.cliente);
+  if (!atualizado) return erro('Cliente não encontrado.', 404);
+  return ok(atualizado);
 }
 
 export async function DELETE(_request, { params }) {
@@ -44,27 +45,9 @@ export async function DELETE(_request, { params }) {
   if (bloqueio) return bloqueio;
 
   const { id } = await params;
+  if (!(await removerUm('clients', { id }))) return erro('Cliente não encontrado.', 404);
 
-  const removido = await mutate('clients', (rows) => {
-    const i = rows.findIndex((c) => c.id === id);
-    if (i === -1) return false;
-    rows.splice(i, 1);
-    return true;
-  });
-
-  if (!removido) return erro('Cliente não encontrado.', 404);
-
-  // Apaga junto todo o histórico de serviços do cliente.
-  const servicosRemovidos = await mutate('services', (rows) => {
-    let n = 0;
-    for (let i = rows.length - 1; i >= 0; i -= 1) {
-      if (rows[i].clienteId === id) {
-        rows.splice(i, 1);
-        n += 1;
-      }
-    }
-    return n;
-  });
-
+  // o histórico da cliente vai junto
+  const servicosRemovidos = await removerVarios('services', { clienteId: id });
   return ok({ servicosRemovidos });
 }

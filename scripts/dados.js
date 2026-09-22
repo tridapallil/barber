@@ -1,15 +1,13 @@
 /*
- * Utilitário de dados:
- *   node scripts/dados.js exemplo  -> carrega os dados de demonstração
- *   node scripts/dados.js limpar   -> apaga tudo e deixa só a lista de serviços
+ * Utilitário de dados (agora sobre MongoDB):
+ *   MONGODB_URI="..." npm run exemplo   -> carrega os dados de demonstração
+ *   MONGODB_URI="..." npm run limpar    -> apaga clientes e atendimentos
+ *
+ * `limpar` não mexe nos usuários: apagar o acesso deixaria o sistema trancado.
  */
 const fs = require('node:fs');
 const path = require('node:path');
-const crypto = require('node:crypto');
-
-const raiz = path.join(__dirname, '..');
-const dados = path.join(raiz, 'data');
-const exemplo = path.join(raiz, 'exemplo');
+const { COLECOES, comChaves, conectar, newId, normalizar } = require('./mongo-util');
 
 const SERVICOS_PADRAO = [
   'Corte feminino', 'Corte masculino', 'Escova', 'Hidratação', 'Coloração',
@@ -17,24 +15,71 @@ const SERVICOS_PADRAO = [
   'Design de sobrancelha', 'Maquiagem', 'Penteado',
 ];
 
-const acao = process.argv[2];
-fs.mkdirSync(dados, { recursive: true });
+const exemplo = path.join(__dirname, '..', 'exemplo');
 
-if (acao === 'exemplo') {
-  for (const arquivo of ['clients.json', 'services.json', 'serviceTypes.json']) {
-    fs.copyFileSync(path.join(exemplo, arquivo), path.join(dados, arquivo));
-  }
-  const clientes = require(path.join(dados, 'clients.json'));
-  const servicos = require(path.join(dados, 'services.json'));
-  console.log(`Dados de exemplo carregados: ${clientes.length} clientes e ${servicos.length} atendimentos.`);
-} else if (acao === 'limpar') {
-  fs.writeFileSync(path.join(dados, 'clients.json'), '[]\n');
-  fs.writeFileSync(path.join(dados, 'services.json'), '[]\n');
-  const agora = new Date().toISOString();
-  const tipos = SERVICOS_PADRAO.map((nome) => ({ id: crypto.randomUUID(), nome, criadoEm: agora }));
-  fs.writeFileSync(path.join(dados, 'serviceTypes.json'), `${JSON.stringify(tipos, null, 2)}\n`);
-  console.log(`Dados apagados. Lista de serviços redefinida com ${tipos.length} itens.`);
-} else {
-  console.log('Use: node scripts/dados.js exemplo   |   node scripts/dados.js limpar');
-  process.exit(1);
+function lerExemplo(arquivo) {
+  return JSON.parse(fs.readFileSync(path.join(exemplo, arquivo), 'utf8'));
 }
+
+async function carregarExemplo(bd) {
+  const conjuntos = {
+    clients: lerExemplo('clients.json'),
+    services: lerExemplo('services.json'),
+    serviceTypes: lerExemplo('serviceTypes.json'),
+  };
+
+  for (const [chave, registros] of Object.entries(conjuntos)) {
+    const col = bd.collection(COLECOES[chave]);
+    await col.deleteMany({});
+    if (registros.length) await col.insertMany(registros.map((r) => comChaves(chave, r)));
+  }
+
+  await bd.collection(COLECOES.config).updateOne(
+    { chave: 'tiposSemeados' },
+    { $set: { chave: 'tiposSemeados', valor: true } },
+    { upsert: true }
+  );
+
+  console.log(
+    `Dados de exemplo carregados: ${conjuntos.clients.length} clientes e ${conjuntos.services.length} atendimentos.`
+  );
+}
+
+async function limpar(bd) {
+  await bd.collection(COLECOES.clients).deleteMany({});
+  await bd.collection(COLECOES.services).deleteMany({});
+
+  const tipos = bd.collection(COLECOES.serviceTypes);
+  await tipos.deleteMany({});
+  const agora = new Date().toISOString();
+  await tipos.insertMany(
+    SERVICOS_PADRAO.map((nome) => ({ id: newId(), nome, nomeChave: normalizar(nome), criadoEm: agora }))
+  );
+
+  await bd.collection(COLECOES.config).updateOne(
+    { chave: 'tiposSemeados' },
+    { $set: { chave: 'tiposSemeados', valor: true } },
+    { upsert: true }
+  );
+
+  console.log(`Clientes e atendimentos apagados. Lista de serviços redefinida com ${SERVICOS_PADRAO.length} itens.`);
+  console.log('O usuário de acesso foi mantido.');
+}
+
+async function main() {
+  const acao = process.argv[2];
+  if (!['exemplo', 'limpar'].includes(acao)) {
+    console.log('Use: npm run exemplo   |   npm run limpar');
+    process.exit(1);
+  }
+
+  const { cliente, bd } = await conectar();
+  if (acao === 'exemplo') await carregarExemplo(bd);
+  else await limpar(bd);
+  await cliente.close();
+}
+
+main().catch((erro) => {
+  console.error('Falhou:', erro.message);
+  process.exit(1);
+});

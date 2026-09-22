@@ -1,13 +1,13 @@
-import { mutate, newId, readAll } from '@/lib/db';
+import { ehDuplicado, inserir, listar, newId } from '@/lib/db';
 import { erro, ok, semSessao, texto } from '@/lib/api';
-import { normalizar, somenteDigitos } from '@/lib/format';
+import { somenteDigitos } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const bloqueio = await semSessao();
   if (bloqueio) return bloqueio;
-  return ok(await readAll('clients'));
+  return ok(await listar('clients'));
 }
 
 export async function POST(request) {
@@ -24,21 +24,22 @@ export async function POST(request) {
   const nome = texto(corpo.nome, 120);
   if (!nome) return erro('O nome do cliente é obrigatório.');
 
+  const agora = new Date().toISOString();
   const cliente = {
     id: newId(),
     nome,
     telefone: somenteDigitos(texto(corpo.telefone, 30)),
     descricao: texto(corpo.descricao, 2000),
-    criadoEm: new Date().toISOString(),
-    atualizadoEm: new Date().toISOString(),
+    criadoEm: agora,
+    atualizadoEm: agora,
   };
 
-  const duplicado = await mutate('clients', (rows) => {
-    const jaExiste = rows.some((c) => normalizar(c.nome) === normalizar(nome));
-    if (!jaExiste) rows.push(cliente);
-    return jaExiste;
-  });
+  try {
+    await inserir('clients', cliente);
+  } catch (e) {
+    if (ehDuplicado(e)) return erro('Já existe um cliente com esse nome.', 409);
+    throw e;
+  }
 
-  if (duplicado) return erro('Já existe um cliente com esse nome.', 409);
   return ok(cliente);
 }

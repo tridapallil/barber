@@ -1,15 +1,30 @@
 # Salão
 
 Sistema simples de clientes, serviços e histórico para salão de beleza.
-Next.js + React, com os dados guardados em arquivos JSON na pasta `data/`.
+Next.js + React, com os dados no **MongoDB**.
 
 As telas estão em [`capturas/`](capturas).
 
 ## Rodar na sua máquina
 
+Você precisa de um MongoDB acessível. O jeito mais rápido:
+
 ```bash
-npm ci          # ou: npm run instalar
-npm run dev     # http://localhost:3210
+docker run -d --name salao-mongo -p 27017:27017 mongo:7
+```
+
+Depois:
+
+```bash
+cp .env.example .env.local   # e ajuste MONGODB_URI se precisar
+npm ci                       # ou: npm run instalar
+npm run dev                  # http://localhost:3210
+```
+
+Para subir o sistema e o banco juntos, sem instalar nada:
+
+```bash
+docker compose up -d         # http://localhost:3210
 ```
 
 Para usar no dia a dia (mais rápido):
@@ -37,9 +52,13 @@ letras, senha com no mínimo 6 caracteres.
 Essa tela só aparece uma vez. Depois que o usuário existe, o sistema vai
 direto para o login. **Anote a senha — não há recuperação automática.**
 
-Se precisar recomeçar do zero, apague `data/users.json` e abra o sistema de
-novo: a tela de criação volta a aparecer. Os clientes e atendimentos não são
-afetados.
+Se precisar recomeçar do zero, apague a coleção `usuarios` e abra o sistema de
+novo — a tela de criação volta a aparecer, sem mexer em clientes e
+atendimentos:
+
+```bash
+mongosh "<sua-uri>" --eval 'db.getSiblingDB("salao").usuarios.deleteMany({})'
+```
 
 ## Telas
 
@@ -73,27 +92,50 @@ rail à esquerda). Ali você:
   acesso (usuário e senha);
 - **restaura** esse arquivo depois, se precisar.
 
-Guarde o arquivo **fora do servidor**. Baixe um antes de qualquer atualização.
-É a única proteção que não depende da infraestrutura estar certa.
+Guarde o arquivo **fora do servidor**. Com os dados no MongoDB, um deploy já
+não apaga nada — mas o backup continua sendo a cópia que não depende do banco
+estar de pé nem de ninguém ter apagado algo por engano.
 
 ## Dados
 
-Tudo fica em `data/`:
+Tudo fica no MongoDB, nestas coleções:
 
-| Arquivo | Conteúdo |
+| Coleção | Conteúdo |
 |---|---|
-| `clients.json` | clientes |
-| `services.json` | atendimentos |
-| `serviceTypes.json` | lista de serviços para sugestão |
-| `users.json` | usuário e senha (a senha guardada como hash scrypt) |
-| `segredo.txt` | chave que assina o cookie de sessão |
+| `clientes` | clientes |
+| `atendimentos` | serviços feitos, com data, valor e pagamento |
+| `tiposServico` | lista de serviços usada nas sugestões |
+| `usuarios` | acesso (senha guardada como hash scrypt com salt) |
+| `config` | chave de assinatura da sessão e marcações internas |
 
-A pasta `data/` **não vai para o Git** — ela tem dados reais. Para fazer
-backup, copie a pasta inteira.
+Os índices — inclusive os únicos que impedem cliente ou serviço repetido — são
+criados sozinhos na primeira conexão.
 
 ```bash
-npm run exemplo   # carrega dados de demonstração (apaga os atuais)
+npm run exemplo   # carrega dados de demonstração (apaga clientes e atendimentos)
 npm run limpar    # apaga clientes/atendimentos e redefine a lista de serviços
+```
+
+`limpar` **não apaga o usuário** — isso deixaria o sistema trancado.
+
+### Vindo da versão em arquivos JSON
+
+Se você já usava a versão anterior, os dados estão em `data/*.json`. Para
+levá-los ao MongoDB:
+
+```bash
+MONGODB_URI="mongodb://localhost:27017" npm run migrar
+```
+
+Pode rodar quantas vezes quiser: registros já migrados são reconhecidos pelo
+`id` e apenas atualizados, nunca duplicados. Clientes, atendimentos, lista de
+serviços e o usuário vão todos juntos.
+
+Para migrar os dados que estão dentro de um container:
+
+```bash
+docker cp <container>:/app/data ./data-antigo
+MONGODB_URI="<sua-uri>" node scripts/migrar-mongo.js ./data-antigo
 ```
 
 ## Variáveis de ambiente
@@ -102,103 +144,75 @@ Todas são opcionais numa instalação local.
 
 | Variável | Para quê |
 |---|---|
+| `MONGODB_URI` | **obrigatória** — conexão com o banco |
+| `MONGODB_DB` | nome do banco (padrão `salao`) |
 | `PORT` | porta do servidor (padrão `3210`) |
-| `SALAO_SEGREDO` | chave que assina o cookie. Sem ela, é gerada e guardada em `data/segredo.txt` |
+| `SALAO_SEGREDO` | chave que assina o cookie. Sem ela, é gerada e guardada na coleção `config` |
 | `SALAO_COOKIE_SECURE` | `1` quando o site é servido por **HTTPS**. Deixe desligado em acesso por `http://ip-da-rede`, senão o login não funciona |
 
 ## Deploy no Coolify
 
-O projeto já vem com `Dockerfile` (Next em modo `standalone`) e o
-`next.config.mjs` configurado. No Coolify:
+Agora são **dois recursos**: o banco e a aplicação. Os dados ficam no banco, então
+atualizar a aplicação não encosta neles.
 
-**1. Criar o recurso**
-- *+ New* → *Application* → *Public Repository* (ou *Private Repository* via
-  GitHub App).
-- Repositório: `https://github.com/tridapallil/barber`
-- Branch: `main`
+### 1. Criar o MongoDB
 
-**2. Build**
-- *Build Pack*: **Dockerfile**
-- *Dockerfile Location*: `/Dockerfile`
-- *Base Directory*: `/`
+- *+ New* → *Database* → **MongoDB**
+- Anote usuário, senha e o host interno que o Coolify mostrar
+- Deixe o volume de dados que o Coolify cria por padrão — é ele que guarda tudo
 
-**3. Rede**
+### 2. Criar a aplicação
+
+- *+ New* → *Application* → *Public Repository*
+- Repositório: `https://github.com/tridapallil/barber`, branch `main`
+- *Build Pack*: **Dockerfile**, location `/Dockerfile`
 - *Ports Exposes*: `3210`
-- Em *Domains*, coloque o domínio que vai usar. O Coolify cuida do HTTPS.
+- Em *Domains*, o domínio que vai usar (o Coolify cuida do HTTPS)
 
-**4. Volume persistente — obrigatório, não opcional**
+### 3. Variáveis de ambiente
 
-Sem isso, **todos os clientes, atendimentos e o usuário somem a cada deploy.**
-O Coolify recria o container a cada atualização; o que não está num volume
-declarado vai junto.
-
-- Aba *Storages* → *+ Add* → **Volume Mount**
-- *Name*: `salao-dados`
-- *Destination Path*: `/app/data`
-
-Use volume nomeado, não *bind mount*. O volume nomeado herda as permissões do
-diretório da imagem (que já pertence ao usuário do container). Se preferir um
-caminho do host, rode antes no servidor:
-`sudo mkdir -p /caminho/escolhido && sudo chown -R 1001:1001 /caminho/escolhido`
-
-Depois do primeiro deploy, confirme que o volume está mesmo montado:
-
-```bash
-docker inspect <nome-do-container> --format '{{json .Mounts}}' | python3 -m json.tool
-```
-
-O resultado precisa mostrar `"Destination": "/app/data"` com `"Type": "volume"`
-e um `Name` legível (`salao-dados`). Se o `Name` for um hash longo de 64
-caracteres, é um **volume anônimo** — ele será descartado no próximo deploy.
-
-### Perdeu dados num deploy? Eles podem estar recuperáveis
-
-Volumes anônimos não são apagados na hora, só ficam órfãos. No servidor:
-
-```bash
-for v in $(docker volume ls -q); do
-  if sudo test -f "/var/lib/docker/volumes/$v/_data/clients.json"; then
-    echo "=== $v ==="
-    sudo ls -la "/var/lib/docker/volumes/$v/_data/"
-  fi
-done
-```
-
-Isso lista os volumes que têm dados do salão. Para trazer de volta o mais
-recente para o volume correto:
-
-```bash
-sudo cp -a /var/lib/docker/volumes/<volume-antigo>/_data/. \
-           /var/lib/docker/volumes/salao-dados/_data/
-sudo chown -R 1001:1001 /var/lib/docker/volumes/salao-dados/_data
-```
-
-Depois reinicie o container pelo Coolify.
-
-**5. Variáveis de ambiente**
-
-Em *Environment Variables*:
+Na aplicação, em *Environment Variables*:
 
 ```
-SALAO_SEGREDO=<cole aqui uma string longa e aleatória>
+MONGODB_URI=mongodb://<usuario>:<senha>@<host-interno-do-mongo>:27017/?authSource=admin
+MONGODB_DB=salao
+SALAO_SEGREDO=<openssl rand -hex 48>
 SALAO_COOKIE_SECURE=1
 ```
 
-Gere o segredo com:
+O `<host-interno-do-mongo>` é o nome de serviço que o Coolify dá ao banco — use
+o endereço **interno**, não o público. `SALAO_COOKIE_SECURE=1` só se o domínio
+for HTTPS.
+
+Nenhuma delas é *Build Variable*: todas são lidas em tempo de execução.
+
+### 4. Deploy
+
+Clique em *Deploy* e abra o domínio: a tela de primeiro acesso aparece para
+criar o usuário.
+
+**A aplicação não precisa de volume nenhum.** Se você tinha um volume em
+`/app/data` da versão anterior, migre os dados antes de removê-lo (veja
+*Vindo da versão em arquivos JSON*).
+
+### Conferindo que está tudo certo
+
+Depois do primeiro deploy, faça um redeploy de propósito e confirme que o
+usuário e os clientes continuam lá. Se sumirem, a `MONGODB_URI` está apontando
+para um banco efêmero.
+
+### Backup do banco
+
+Além da tela de Backup do sistema, dá para copiar o banco inteiro:
+
 ```bash
-openssl rand -hex 48
+docker exec <container-do-mongo> mongodump --archive --gzip \
+  --db salao -u <usuario> -p <senha> --authenticationDatabase admin > salao.gz
+
+# restaurar
+docker exec -i <container-do-mongo> mongorestore --archive --gzip --drop \
+  -u <usuario> -p <senha> --authenticationDatabase admin < salao.gz
 ```
-
-Marque `SALAO_SEGREDO` como *Build Variable? No* — ela é usada em tempo de
-execução. Defina `SALAO_COOKIE_SECURE=1` só se o domínio for HTTPS.
-
-**6. Deploy**
-
-Clique em *Deploy*. Quando subir, abra o domínio: a tela de primeiro acesso
-aparece para você criar o usuário.
-
-**Backup:** o conteúdo do volume `salao-dados` é o banco inteiro. Copiar esse
-volume é o backup completo.
 
 ## Visual
 
@@ -218,3 +232,6 @@ pico ganha um selo lima com o número.
 - O valor do atendimento é opcional, mas a tela avisa e pede confirmação antes
   de salvar sem valor.
 - A senha é guardada como hash scrypt com salt — nunca em texto puro.
+- Cliente repetido e serviço repetido são barrados por índice único no banco,
+  não por uma checagem no código: duas gravações ao mesmo tempo não conseguem
+  criar o mesmo registro duas vezes.

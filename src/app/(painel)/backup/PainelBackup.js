@@ -157,10 +157,10 @@ export default function PainelBackup({ contagem }) {
             <span className="rotulo-cartao">Onde os dados ficam</span>
           </div>
           <p style={{ color: 'var(--tinta-2)', lineHeight: 1.6, fontSize: '0.92rem' }}>
-            Tudo fica em arquivos JSON na pasta <code>data/</code> do servidor. Se o sistema
-            roda em container, essa pasta precisa estar num volume persistente — sem isso,
-            cada atualização sobe uma instalação vazia. O backup daqui é a sua rede de
-            proteção independente disso.
+            Tudo fica guardado num banco MongoDB, separado da aplicação — atualizar o
+            sistema não encosta nos dados. Ainda assim, o backup daqui é a sua cópia
+            independente: serve se o banco for perdido, trocado de servidor, ou se algo
+            for apagado por engano.
           </p>
         </div>
       </div>
