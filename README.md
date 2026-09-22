@@ -169,6 +169,13 @@ atualizar a aplicação não encosta neles.
 - *Ports Exposes*: `3210`
 - Em *Domains*, o domínio que vai usar (o Coolify cuida do HTTPS)
 
+O *Build Pack* precisa ser **Dockerfile**. O padrão do Coolify é *Nixpacks*,
+que ignora o `Dockerfile` do projeto, monta a imagem por conta própria e roda
+tudo como root. O Dockerfile daqui é o que foi testado: usuário sem privilégio,
+build `standalone` e `node server.js` como comando.
+
+Deixe o campo *Start Command* **vazio** — o Dockerfile já traz o comando certo.
+
 ### 3. Variáveis de ambiente
 
 Na aplicação, em *Environment Variables*:
@@ -194,6 +201,28 @@ criar o usuário.
 **A aplicação não precisa de volume nenhum.** Se você tinha um volume em
 `/app/data` da versão anterior, migre os dados antes de removê-lo (veja
 *Vindo da versão em arquivos JSON*).
+
+### Deploy falhando com `Missing script: "prod"`
+
+Sintoma nos logs, repetindo sem parar:
+
+```
+npm error Missing script: "prod"
+```
+
+Isso quer dizer que a aplicação **não está usando o Dockerfile**: algum
+*Start Command* está mandando rodar `npm run prod`. Dois sinais confirmam —
+os logs aparecem em `/root/.npm` (o Dockerfile roda como usuário sem
+privilégio, nunca root) e o build pack registrado não é o Dockerfile.
+
+Para resolver, na aplicação:
+
+1. *Build Pack* → **Dockerfile**, *Dockerfile Location* → `/Dockerfile`
+2. *Start Command* → deixe **vazio**
+3. Redeploy
+
+O script `prod` existe no projeto como alias de `start`, então o deploy também
+sobe do jeito que está. Mas prefira o Dockerfile: é a configuração testada.
 
 ### Se algo estiver errado, o sistema diz o quê
 

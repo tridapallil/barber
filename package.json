@@ -6,6 +6,7 @@
     "dev": "next dev -p ${PORT:-3210}",
     "build": "next build",
     "start": "next start -p ${PORT:-3210}",
+    "prod": "next start -p ${PORT:-3210}",
     "instalar": "npm ci",
     "producao": "npm ci && npm run build && npm start",
     "migrar": "node scripts/migrar-mongo.js",
