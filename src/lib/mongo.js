@@ -90,6 +90,25 @@ export async function colecao(chave) {
   return (await banco()).collection(nome);
 }
 
+/** Tira usuário e senha de qualquer texto antes de mostrá-lo na tela. */
+export function semCredenciais(texto) {
+  return String(texto || '').replace(/(mongodb(?:\+srv)?:\/\/)[^@\s]*@/gi, '$1***@');
+}
+
+/**
+ * Diz se dá para falar com o banco. Usado nas telas de entrada para trocar o
+ * erro 500 mudo por uma explicação do que configurar.
+ */
+export async function verificarConexao() {
+  if (!URI) return { ok: false, motivo: 'sem-uri' };
+  try {
+    await banco();
+    return { ok: true };
+  } catch (erro) {
+    return { ok: false, motivo: 'sem-conexao', detalhe: semCredenciais(erro?.message) };
+  }
+}
+
 /** Erro de chave duplicada do Mongo. */
 export function ehDuplicado(erro) {
   return erro?.code === 11000;

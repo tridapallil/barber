@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from './auth';
+import { verificarConexao } from './mongo';
 
 export function ok(data) {
   return NextResponse.json(data ?? { ok: true });
@@ -9,8 +10,21 @@ export function erro(mensagem, status = 400) {
   return NextResponse.json({ erro: mensagem }, { status });
 }
 
-/** Retorna uma resposta 401 quando não há sessão, ou null quando pode seguir. */
+/**
+ * Barra a requisição quando o banco está fora ou não há sessão.
+ * Devolve a resposta pronta, ou null quando pode seguir.
+ */
 export async function semSessao() {
+  const banco = await verificarConexao();
+  if (!banco.ok) {
+    return erro(
+      banco.motivo === 'sem-uri'
+        ? 'O banco de dados não está configurado (MONGODB_URI).'
+        : 'Não foi possível falar com o banco de dados.',
+      503
+    );
+  }
+
   const sessao = await getSession();
   return sessao ? null : erro('Sessão expirada. Entre novamente.', 401);
 }

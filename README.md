@@ -195,6 +195,12 @@ criar o usuário.
 `/app/data` da versão anterior, migre os dados antes de removê-lo (veja
 *Vindo da versão em arquivos JSON*).
 
+### Se algo estiver errado, o sistema diz o quê
+
+Quando a `MONGODB_URI` está faltando ou o banco não responde, o sistema mostra
+uma tela explicando o que configurar — com a resposta do banco e **sem expor a
+senha da conexão**. Não é mais um erro 500 em branco.
+
 ### Conferindo que está tudo certo
 
 Depois do primeiro deploy, faça um redeploy de propósito e confirme que o
